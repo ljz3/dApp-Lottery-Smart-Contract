@@ -1,0 +1,2 @@
+Verified MOK Contract Address: 0xe9075dbF87f3461fD429D8B5aAAcbe6f7fc17d1D
+Verified Lottery Contract Address: 0x8f22E06F850712361796bd486fD9C1C0828dC9DD
