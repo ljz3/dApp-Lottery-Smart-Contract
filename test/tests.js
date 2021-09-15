@@ -15,6 +15,9 @@ describe("Testing MOK", function () {
   });
 });
 
+
+
+
 describe("Testing Lottery Contract Deployent", function () {
   it("Testing Lottery Contract Deployent", async function () {
     const MOKToken = await ethers.getContractFactory("MOKToken");
@@ -27,6 +30,9 @@ describe("Testing Lottery Contract Deployent", function () {
   });
 });
 
+
+
+
 describe("Testing Lottery", function () {
   let MOK;
   let MOKToken;
@@ -34,6 +40,7 @@ describe("Testing Lottery", function () {
   let lottery;
   let owner;
   let accounts;
+
 
   beforeEach(async function () {
     accounts = await ethers.getSigners();
@@ -51,6 +58,8 @@ describe("Testing Lottery", function () {
   });
 
   
+
+
   describe("Testing Lottery Entering", function () {
 
     it("Testing 1 person entry", async function () {
@@ -87,7 +96,6 @@ describe("Testing Lottery", function () {
       await expect(lottery.connect(accounts[4]).enter()).to.be.reverted;
     });
 
-
     it("Testing multiple people entry 1 person no approval", async function () {
       await MOK.connect(accounts[1]).approve(lottery.address, ethers.utils.parseEther("20"));
       await lottery.connect(accounts[1]).enter();
@@ -95,9 +103,9 @@ describe("Testing Lottery", function () {
       expect(await lottery.players(0)).to.equal(accounts[1].address);
       await expect(lottery.connect(accounts[2]).enter()).to.be.reverted;
     });
-
-
   });
+
+
 
 
   describe("Testing Lottery Picking Winner", function () {
@@ -115,7 +123,34 @@ describe("Testing Lottery", function () {
       await lottery.connect(accounts[1]).enter();
       await lottery.pickWinner();
       expect(await lottery.winner()).to.equal(accounts[1].address);
+    });
 
+    it("Testing picking 2 winners, on cooldown", async function () {
+      await MOK.connect(accounts[1]).approve(lottery.address, ethers.utils.parseEther("20"));
+      await lottery.connect(accounts[1]).enter();
+      await lottery.pickWinner();
+      await expect(lottery.pickWinner()).to.be.reverted;
+    });
+
+    it("Testing picking 2 winners, multiple players, on cooldown", async function () {
+      await MOK.connect(accounts[1]).approve(lottery.address, ethers.utils.parseEther("20"));
+      await lottery.connect(accounts[1]).enter();
+      await MOK.connect(accounts[2]).approve(lottery.address, ethers.utils.parseEther("20"));
+      await lottery.connect(accounts[2]).enter();
+      await lottery.pickWinner();
+      await expect(lottery.pickWinner()).to.be.reverted;
+    });
+
+    it("Testing picking 2 winners, multiple players, off cooldown", async function () {
+      await MOK.connect(accounts[1]).approve(lottery.address, ethers.utils.parseEther("20"));
+      await lottery.connect(accounts[1]).enter();
+      await MOK.connect(accounts[2]).approve(lottery.address, ethers.utils.parseEther("20"));
+      await lottery.connect(accounts[2]).enter();
+      await lottery.pickWinner();
+      await network.provider.send("evm_increaseTime", [3600]);
+      expect(await lottery.winner()).to.satisfy(function(address) { 
+        return (address === accounts[1].address || address === accounts[2].address); 
+      });
     });
 
     it("Testing multiple players to pick from", async function () {
@@ -129,8 +164,17 @@ describe("Testing Lottery", function () {
       });
     });
 
-
+    it("Testing not owner and multiple players to pick from", async function () {
+      await MOK.connect(accounts[1]).approve(lottery.address, ethers.utils.parseEther("20"));
+      await lottery.connect(accounts[1]).enter();
+      await MOK.connect(accounts[2]).approve(lottery.address, ethers.utils.parseEther("20"));
+      await lottery.connect(accounts[2]).enter();
+      await expect(lottery.connect(accounts[2]).pickWinner()).to.be.reverted;
+    });
   });
+
+
+
 
   describe("Testing Lottery Payout", function () {
 
@@ -158,6 +202,55 @@ describe("Testing Lottery", function () {
       await lottery.pickWinner();
       await expect(lottery.connect(accounts[1]).pickWinner()).to.be.reverted;
     });
+  });
 
+
+
+
+  describe("Testing Withdrawing Entry Fees", function () {
+
+    it("Testing no MOK tokens to withdraw", async function () {
+      let balance = await MOK.balanceOf(accounts[0].address);
+      lottery.withdraw();
+      expect(await MOK.balanceOf(accounts[0].address)).to.equal(balance);
+    });
+
+    it("Testing withdraw fees to owner", async function () {
+      await MOK.connect(accounts[1]).approve(lottery.address, ethers.utils.parseEther("20"));
+      await lottery.connect(accounts[1]).enter();
+      let balance = await MOK.balanceOf(accounts[0].address);
+      expect(await lottery.withdraw()).to.satisfy(function() { 
+        let newbal = MOK.balanceOf(accounts[0].address);
+        return (newbal > balance);
+      });
+    });
+
+    it("Testing not owner withdrawing", async function () {
+      await MOK.connect(accounts[1]).approve(lottery.address, ethers.utils.parseEther("20"));
+      await lottery.connect(accounts[1]).enter();
+      await expect(lottery.connect(accounts[1]).withdraw()).to.be.reverted;
+    });
+  });
+
+
+  describe("Testing Changing Entry Fees", function () {
+    it("Testing not owner changing fees", async function () {
+      await expect(lottery.connect(accounts[1]).changeEntry(100, 5000, 5000)).to.be.reverted;
+    });
+
+    it("Testing owner changing fees", async function () {
+      await lottery.changeEntry(100, 6000, 4000);
+      expect(await lottery.entry_fee()).to.equal(100);
+      expect(await lottery.poolContributionBasis()).to.equal(6000);
+      expect(await lottery.ownerFeeBasis()).to.equal(4000);
+    });
+
+    it("Testing owner changing fees to too many basis points", async function () {
+      await expect(lottery.changeEntry(100, 10000, 5000)).to.be.reverted;
+    });
+
+    it("Testing owner changing fees to too little basis points", async function () {
+      await expect(lottery.changeEntry(100, 500, 5000)).to.be.reverted;
+    });
   });
 });

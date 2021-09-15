@@ -5,8 +5,6 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "hardhat/console.sol";
 
-
-
 contract Lottery is AccessControl{
     
     IERC20 public ERC20Token;
@@ -32,6 +30,7 @@ contract Lottery is AccessControl{
         _setupRole(OWNER, msg.sender);
     }
     
+
     modifier isOwner(){
         require(hasRole(OWNER, msg.sender), "Caller is not the OWNER");
         _;
@@ -42,6 +41,7 @@ contract Lottery is AccessControl{
         _;
     }
     
+
     function enter() public {
         ERC20Token.transferFrom(msg.sender, address(this), entry_fee * 10**18);
         pool += poolContribution;
@@ -56,20 +56,24 @@ contract Lottery is AccessControl{
     function pickWinner() public isOwner offCooldown {        
         uint index = random(players.length) % players.length;
         winner = players[index];
+        last_drawn = block.timestamp;
     }
 
     function withdraw() public isOwner {
-        ERC20Token.transferFrom(address(this), msg.sender, fees);
+        ERC20Token.approve(address(this), fees * 10**18);
+        ERC20Token.transferFrom(address(this), msg.sender, fees * 10**18);
         fees = 0;
     }
 
     function payout() public isOwner {
         ERC20Token.approve(address(this), pool * 10**18);
         ERC20Token.transferFrom(address(this), winner, pool * 10**18);
+        delete players;
         pool = 0;
     }
 
     function changeEntry(uint fee, uint poolBasis, uint ownerBasis) public isOwner {
+        require((poolBasis + ownerBasis) == 10000, "Basis points do not add up to 10000");
         entry_fee = fee;
         poolContributionBasis = poolBasis;
         ownerFeeBasis = ownerBasis;
