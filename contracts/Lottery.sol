@@ -69,6 +69,7 @@ contract Lottery is AccessControl{
         ERC20Token.approve(address(this), pool * 10**18);
         ERC20Token.transferFrom(address(this), winner, pool * 10**18);
         delete players;
+        winner = address(0);
         pool = 0;
     }
 

@@ -1,8 +1,10 @@
+const { ethers } = require("hardhat");
+
 async function main () {
     // We get the contract to deploy
     const MOKToken = await ethers.getContractFactory('MOKToken');
     console.log('Deploying MOK...');
-    const mok = await MOKToken.deploy(10000);
+    const mok = await MOKToken.deploy(ethers.utils.parseEther("100000"));
     await mok.deployed();
     console.log('MOK deployed to:', mok.address);
 
