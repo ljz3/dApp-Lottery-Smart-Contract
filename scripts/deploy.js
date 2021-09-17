@@ -10,7 +10,7 @@ async function main () {
 
     const Lottery = await ethers.getContractFactory('Lottery');
     console.log('Deploying Lottery...');
-    const lottery = await Lottery.deploy(mok.address);
+    const lottery = await Lottery.deploy(mok.address, 20, 9500, 500);
     await lottery.deployed();
     console.log('Lottery deployed to:', lottery.address);
 }
