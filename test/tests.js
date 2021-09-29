@@ -262,7 +262,16 @@ describe("Testing Lottery", function () {
       await lottery.connect(accounts[1]).enter();
       let balance = await MOK.balanceOf(accounts[1].address);
       await lottery.pickWinner();
-      await expect(lottery.connect(accounts[1]).pickWinner()).to.be.revertedWith("reverted with reason string 'Caller does not have permission to do this!'");
+      await expect(lottery.connect(accounts[1]).payout()).to.be.revertedWith("reverted with reason string 'Caller is not the OWNER'");
+    });
+
+		it("Testing manager not owner paying out", async function () {
+			await lottery.addManager(accounts[3].address);
+      await MOK.connect(accounts[1]).approve(lottery.address, ethers.utils.parseEther("20"));
+      await lottery.connect(accounts[1]).enter();
+      let balance = await MOK.balanceOf(accounts[1].address);
+      await lottery.pickWinner();
+      await expect(lottery.connect(accounts[3]).payout()).to.be.revertedWith("reverted with reason string 'Caller is not the OWNER'");
     });
   });
 
@@ -292,6 +301,13 @@ describe("Testing Lottery", function () {
       await lottery.connect(accounts[1]).enter();
       await expect(lottery.connect(accounts[1]).withdraw()).to.be.revertedWith("Caller is not the OWNER");
     });
+
+		it("Testing manager not owner withdrawing", async function () {
+			await lottery.addManager(accounts[3].address);
+      await MOK.connect(accounts[1]).approve(lottery.address, ethers.utils.parseEther("20"));
+      await lottery.connect(accounts[1]).enter();
+      await expect(lottery.connect(accounts[3]).withdraw()).to.be.revertedWith("reverted with reason string 'Caller is not the OWNER'");
+    });
   });
 
 
@@ -313,6 +329,11 @@ describe("Testing Lottery", function () {
 
     it("Testing owner changing fees to too little basis points", async function () {
       await expect(lottery.changeEntry(100, 500, 5000)).to.be.revertedWith("reverted with reason string 'Basis points do not add up to 10000'");
+    });
+
+		it("Testing manager not owner changing fees", async function () {
+			await lottery.addManager(accounts[3].address);
+      await expect(lottery.connect(accounts[3]).changeEntry(100, 5000, 5000)).to.be.revertedWith("reverted with reason string 'Caller is not the OWNER'");
     });
   });
 });

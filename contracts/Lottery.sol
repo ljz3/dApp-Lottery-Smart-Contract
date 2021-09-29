@@ -9,9 +9,9 @@ contract Lottery is AccessControl{
     
     IERC20 public ERC20Token;
 
-    bytes32 public constant OWNER = keccak256("OWNER");
-    bytes32 public constant MANAGER = keccak256("MANAGER");
-    uint public managers = 0;
+    bytes32 public constant OWNER = keccak256("OWNER_ROLE");
+    bytes32 public constant MANAGER = keccak256("MANAGER_ROLE");
+    uint public managers;
 
     uint public entryFee;
     uint public poolContributionBasis;
@@ -20,13 +20,14 @@ contract Lottery is AccessControl{
     uint public ownerFee;
     uint public constant cooldown = 300;
     
-    address public winner;
-    address[] public players;
-    
     uint public last_drawn;
     uint public lotteriesCount;
     uint public pool;
     uint public fees;
+
+    address public winner;
+    address[] public players;
+    
 
     constructor(address _tokenAddress, uint _entryFee, uint _poolContributionBasis, uint _ownerFeeBasis) public {
         require((_poolContributionBasis + _ownerFeeBasis == 10000), "Incorrect basis points!");
