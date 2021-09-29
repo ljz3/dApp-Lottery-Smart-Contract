@@ -103,6 +103,14 @@ describe("Testing Lottery", function () {
       await expect(lottery.removeManager(accounts[1].address)).to.be.revertedWith("reverted with reason string 'User is not a manager!'");
     });
 
+		it("Testing not owner adding a manager", async function () {
+      await expect(lottery.connect(accounts[1]).addManager(accounts[2].address)).to.be.revertedWith("reverted with reason string 'Caller is not the OWNER'");
+    });
+
+		it("Testing not owner removing a manager", async function () {
+			await lottery.addManager(accounts[2].address);
+      await expect(lottery.connect(accounts[1]).removeManager(accounts[2].address)).to.be.revertedWith("reverted with reason string 'Caller is not the OWNER'");
+    });
   });
 
 
